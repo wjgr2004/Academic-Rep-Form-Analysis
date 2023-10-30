@@ -7,7 +7,7 @@ def get_data(course_name, df):
     course_df = df[df[course_name].notnull()]
 
     if course_df.shape[0] == 0:
-        return None, None, None, None, None, None
+        return None, None, None, None, None, None, None
 
     course_mean = course_df[course_name].mean()
     course_stdev = course_df[course_name].std()
@@ -52,7 +52,8 @@ def get_data(course_name, df):
     else:
         too_slow_bounds = norm.interval(0.9, loc=course_too_slow, scale=(too_slow_stdev/np.sqrt(course_df.shape[0])))
 
-    return course_mean, mean_bounds, course_too_fast, too_fast_bounds, course_too_slow, too_slow_bounds
+    return (course_mean, mean_bounds, course_too_fast, too_fast_bounds,
+            course_too_slow, too_slow_bounds, course_df.shape[0])
 
 
 df = pd.read_csv("Academic Feedback.csv")
@@ -64,7 +65,7 @@ for course in ["CM12001 (Artificial Intelligence 1)", "CM12002 (Computer Systems
                "CM12003 (Programming 1)", "CM12004 (Discrete Mathematics and Databases)", "MA12012 (Algebra)",
                "MA12012 (Probability/Statistics)", "MA12012 (Sequences and Functions)"]:
     print(course)
-    mean, mean_bounds, too_fast, too_fast_bounds, too_slow, too_slow_bounds = get_data(course, df)
+    mean, mean_bounds, too_fast, too_fast_bounds, too_slow, too_slow_bounds, responses = get_data(course, df)
     if mean is None:
         print("Mean score: no data")
     elif np.isnan(mean_bounds[0]):
@@ -85,5 +86,9 @@ for course in ["CM12001 (Artificial Intelligence 1)", "CM12002 (Computer Systems
     else:
         print(f"Too slow: {100 * too_slow:.1f}% "
               f"({max(0.0, 100 * too_slow_bounds[0]):.1f}%-{min(100.0, 100 * too_slow_bounds[1]):.1f}%)")
+    if responses is None:
+        print("Responses: no data")
+    else:
+        print(f"Responses: {responses}")
 
     print()
