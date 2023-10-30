@@ -1,6 +1,13 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
+import matplotlib.pyplot as plt
+import matplotlib.ticker as tck
+
+
+plt.style.use("seaborn-v0_8-whitegrid")
+plt.grid(linewidth=0.8, color="darkgrey")
+plt.grid(linewidth=0.4, color="gainsboro", which="minor")
 
 
 def get_data(course_name, df):
@@ -8,6 +15,26 @@ def get_data(course_name, df):
 
     if course_df.shape[0] == 0:
         return None, None, None, None, None, None, None
+
+    fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+
+    ax.tick_params(which="major", length=5, width=1.3)
+
+    ax.set_xticks(np.arange(1, 11))
+
+    ax.set_title(f"{course_name} Ratings", loc="left")
+    ax.set_xlabel("Rating")
+
+    data = course_df[course_name].value_counts()
+
+    ax.set(xlim=(0.5, 10.5), ylim=(0, data.max() * 1.1))
+
+    ax.yaxis.set_major_locator(tck.MaxNLocator(integer=True))
+
+    ax.bar(data.index, data)
+
+    with open(f"Graphs/{course_name.replace('/', ',')}.png", "wb") as file:
+        plt.savefig(file)
 
     course_mean = course_df[course_name].mean()
     course_stdev = course_df[course_name].std()
@@ -61,11 +88,30 @@ df.drop("Timestamp", axis=1, inplace=True)
 df.drop("What specifically have you enjoyed the most?", axis=1, inplace=True)
 df.drop("Do you have any issues or concerns that you would like to address?", axis=1, inplace=True)
 
-for course in ["CM12001 (Artificial Intelligence 1)", "CM12002 (Computer Systems Architectures)",
+means = []
+mean_bounds_list = []
+
+too_slows = []
+too_slow_bounds_list = []
+
+too_fasts = []
+too_fast_bounds_list = []
+
+course_names = ["CM12001 (Artificial Intelligence 1)", "CM12002 (Computer Systems Architectures)",
                "CM12003 (Programming 1)", "CM12004 (Discrete Mathematics and Databases)", "MA12012 (Algebra)",
-               "MA12012 (Probability/Statistics)", "MA12012 (Sequences and Functions)"]:
+               "MA12012 (Probability/Statistics)", "MA12012 (Sequences and Functions)"]
+
+short_course_names = ["AI", "Sys Arch", "Programming", "Discrete Maths", "Algebra", "Statistics", "Sequences"]
+
+for course in course_names:
     print(course)
     mean, mean_bounds, too_fast, too_fast_bounds, too_slow, too_slow_bounds, responses = get_data(course, df)
+    means.append(mean)
+    mean_bounds_list.append(mean_bounds)
+    too_slows.append(too_slow)
+    too_slow_bounds_list.append(too_slow_bounds)
+    too_fasts.append(too_fast)
+    too_fast_bounds_list.append(too_fast_bounds)
     if mean is None:
         print("Mean score: no data")
     elif np.isnan(mean_bounds[0]):
@@ -92,3 +138,59 @@ for course in ["CM12001 (Artificial Intelligence 1)", "CM12002 (Computer Systems
         print(f"Responses: {responses}")
 
     print()
+
+means = np.array(means)
+mean_bounds_list = np.array(mean_bounds_list).transpose()
+
+too_slows = np.array(too_slows) * 100
+too_slow_bounds_list = np.array(too_slow_bounds_list).transpose() * 100
+
+too_fasts = np.array(too_fasts) * 100
+too_fast_bounds_list = np.array(too_fast_bounds_list).transpose() * 100
+
+fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+
+ax.tick_params(which="major", length=5, width=1.3)
+
+ax.set_title(f"Course Ratings", loc="left")
+ax.set_xlabel("Course")
+ax.set_ylabel("Rating")
+
+# ax.set(xlim=(0.5, 10.5), ylim=(0, data.max() * 1.1))
+
+ax.yaxis.set_major_locator(tck.MaxNLocator(integer=True))
+
+ax.bar(short_course_names, means, yerr=np.abs(mean_bounds_list - means))
+
+ax.tick_params(axis='x', labelrotation=0, size=2)
+
+with open(f"Graphs/all scores.png", "wb") as file:
+    plt.savefig(file)
+
+fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+
+ax.tick_params(which="major", length=5, width=1.3)
+
+ax.set_title(f"Teaching Speed", loc="left")
+ax.set_xlabel("Course")
+ax.set_ylabel("Rating")
+
+# ax.set(xlim=(0.5, 10.5), ylim=(0, data.max() * 1.1))
+
+# ax.yaxis.set_major_locator(tck.MaxNLocator(integer=True))
+
+ax.bar(short_course_names, too_slows, yerr=np.abs(too_slow_bounds_list - too_slows), label="Too Slow")
+ax.bar(short_course_names, (100-too_fasts-too_slows), yerr=np.abs(too_fast_bounds_list - too_fasts),
+       bottom=too_slows, label="Right Speed")
+ax.bar(short_course_names, too_fasts, bottom=(100-too_fasts), label="Too Fast")
+
+ax.tick_params(axis='x', labelrotation=0, size=2)
+
+ax.set(ylim=(0, 100), xlim=(-0.5, 6.5))
+
+ax.legend(loc="upper right", frameon=True)
+
+ax.yaxis.set_major_formatter(tck.PercentFormatter())
+
+with open(f"Graphs/speeds.png", "wb") as file:
+    plt.savefig(file)
