@@ -16,6 +16,9 @@ def get_data(course_name, df):
     if course_df.shape[0] == 0:
         return None, None, None, None, None, None, None
 
+    course_mean = course_df[course_name].mean()
+    course_stdev = course_df[course_name].std()
+
     fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
 
     ax.tick_params(which="major", length=5, width=1.3)
@@ -27,17 +30,21 @@ def get_data(course_name, df):
 
     data = course_df[course_name].value_counts()
 
-    ax.set(xlim=(0.5, 10.5), ylim=(0, data.max() * 1.1))
+    ax.set(xlim=(0.5, 10.5), ylim=(0, data.max() * 1.08))
 
     ax.yaxis.set_major_locator(tck.MaxNLocator(integer=True))
 
     ax.bar(data.index, data)
 
+    ax.vlines(x=[course_mean, course_mean - course_stdev, course_mean + course_stdev],
+              ymin=-1000, ymax=1000, color="black")
+
+    ax2 = ax.secondary_xaxis('top')
+    ax2.set_xticks([course_mean, course_mean - course_stdev, course_mean + course_stdev])
+    ax2.set_xticklabels(["\u03BC", "\u03BC \u2212 \u03c3", "\u03BC \u002B \u03c3"])
+
     with open(f"Graphs/{course_name.replace('/', ',')}.png", "wb") as file:
         plt.savefig(file)
-
-    course_mean = course_df[course_name].mean()
-    course_stdev = course_df[course_name].std()
 
     mean_bounds = norm.interval(0.9, loc=course_mean, scale=(course_stdev/np.sqrt(course_df.shape[0])))
 
@@ -173,7 +180,6 @@ ax.tick_params(which="major", length=5, width=1.3)
 
 ax.set_title(f"Teaching Speed", loc="left")
 ax.set_xlabel("Course")
-ax.set_ylabel("Rating")
 
 # ax.set(xlim=(0.5, 10.5), ylim=(0, data.max() * 1.1))
 
