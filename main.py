@@ -9,8 +9,19 @@ plt.style.use("seaborn-v0_8-whitegrid")
 plt.grid(linewidth=0.8, color="darkgrey")
 plt.grid(linewidth=0.4, color="gainsboro", which="minor")
 
+all_plots, axes = plt.subplots(5, 2, figsize=(21, 29.7))
+axes = axes.flatten()
+axes[-1].set_axis_off()
+
+all_plots.tight_layout(pad=5.0)
+plt.subplots_adjust(wspace=0.4, hspace=0.2)
+
+fig_num = 0
+
 
 def get_data(course_name, df):
+    global fig_num
+
     course_df = df[df[course_name].notnull()]
 
     if course_df.shape[0] == 0:
@@ -19,7 +30,7 @@ def get_data(course_name, df):
     course_mean = course_df[course_name].mean()
     course_stdev = course_df[course_name].std()
 
-    fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+    ax = axes[fig_num]
 
     ax.tick_params(which="major", length=5, width=1.3)
 
@@ -43,8 +54,11 @@ def get_data(course_name, df):
     ax2.set_xticks([course_mean, course_mean - course_stdev, course_mean + course_stdev])
     ax2.set_xticklabels(["\u03BC", "\u03BC \u2212 \u03c3", "\u03BC \u002B \u03c3"])
 
+    extent = ax.get_window_extent().transformed(all_plots.dpi_scale_trans.inverted())
     with open(f"Graphs/{course_name.replace('/', ',')}.png", "wb") as file:
-        plt.savefig(file)
+        plt.savefig(file, bbox_inches=extent.expanded(1.1, 1.2))
+
+    fig_num += 1
 
     mean_bounds = norm.interval(0.9, loc=course_mean, scale=(course_stdev/np.sqrt(course_df.shape[0])))
 
@@ -155,7 +169,8 @@ too_slow_bounds_list = np.array(too_slow_bounds_list).transpose() * 100
 too_fasts = np.array(too_fasts) * 100
 too_fast_bounds_list = np.array(too_fast_bounds_list).transpose() * 100
 
-fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+ax = axes[fig_num]
+fig_num += 1
 
 ax.tick_params(which="major", length=5, width=1.3)
 
@@ -171,10 +186,12 @@ ax.bar(short_course_names, means, yerr=np.abs(mean_bounds_list - means))
 
 ax.tick_params(axis='x', labelrotation=0, size=2)
 
+extent = ax.get_window_extent().transformed(all_plots.dpi_scale_trans.inverted())
 with open(f"Graphs/all scores.png", "wb") as file:
-    plt.savefig(file)
+    plt.savefig(file, bbox_inches=extent.expanded(1.12, 1.2))
 
-fig, ax = plt.subplots(figsize=(8, 6), layout="constrained")
+ax = axes[fig_num]
+fig_num += 1
 
 ax.tick_params(which="major", length=5, width=1.3)
 
@@ -198,5 +215,9 @@ ax.legend(loc="upper right", frameon=True)
 
 ax.yaxis.set_major_formatter(tck.PercentFormatter())
 
+extent = ax.get_window_extent().transformed(all_plots.dpi_scale_trans.inverted())
 with open(f"Graphs/speeds.png", "wb") as file:
-    plt.savefig(file)
+    plt.savefig(file, bbox_inches=extent.expanded(1.12, 1.2))
+
+with open(f"graphs.pdf", "wb") as file:
+    plt.savefig(file, format="pdf")
